@@ -1,0 +1,99 @@
+#!/bin/bash
+# LIGHTNING-KERNEL-BUILD
+
+# Variables
+DIR="$(pwd)"
+
+
+PARENT_DIR="$(pwd)"
+
+echo "Cloning dependencies"
+git clone --depth=1 --branch main https://github.com/lxxsnowxxl/samsung-s8-kernel kernel
+cd kernel 
+git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 aarch64-linux-android-4.9
+git clone --depth=1 https://github.com/crdroidandroid/android_prebuilts_clang_host_linux-x86_clang-5657785.git clang-r353983b
+git clone --depth=1 https://github.com/lxxsnowxxl/anyker anyker
+echo "Done"
+KERNEL_DIR=$(pwd)
+OUT_DIR="$(pwd)/out"
+REPACK_DIR="${KERNEL_DIR}/anyker"
+IMAGE="${KERNEL_DIR}/arch/arm64/boot/Image"
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+
+export PLATFORM_VERSION=9
+export ANDROID_MAJOR_VERSION=p
+export ARCH=arm64
+export CROSS_COMPILE="$(pwd)/aarch64-linux-android-4.9/bin/aarch64-linux-android-"
+export LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN="$(pwd)/aarch64-linux-android-4.9/bin"
+export CLANG_TRIPLE="$(pwd)/clang-r353983b/bin/aarch64-linux-gnu-"
+export CLANG_PREBUILT_BIN="$(pwd)/clang-r353983b/bin"
+export PATH=$PATH:$CLANG_PREBUILT_BIN:$LINUX_GCC_CROSS_COMPILE_PREBUILTS_BIN
+
+# Color
+ON_BLUE=`echo -e "\033[44m"`	# On Blue
+BRED=`echo -e "\033[1;31m"`	# Bold Red
+BBLUE=`echo -e "\033[1;34m"`	# Bold Blue
+BGREEN=`echo -e "\033[1;32m"`	# Bold Green
+UNDER_LINE=`echo -e "\e[4m"`	# Text Under Line
+STD=`echo -e "\033[0m"`		# Text Clear
+ 
+build_kernel() {
+    echo "${BGREEN}***** Compiling kernel *****${STD}"
+
+    mkdir -p "$OUT_DIR"
+
+    make -j"$(nproc)" $KERNEL_MAKE_ENV exynos8895-dream2lte_defconfig
+    make -j"$(nproc)" $KERNEL_MAKE_ENV
+
+    # Detectar la imagen generada
+    if [ -f arch/arm64/boot/Image.gz-dtb ]; then
+        IMAGE="arch/arm64/boot/Image.gz-dtb"
+    elif [ -f arch/arm64/boot/Image.gz ]; then
+        IMAGE="arch/arm64/boot/Image.gz"
+    elif [ -f arch/arm64/boot/Image ]; then
+        IMAGE="arch/arm64/boot/Image"
+    else
+        echo "${BRED}Kernel image not found!${STD}"
+        exit 1
+    fi
+
+    cp "$IMAGE" "$OUT_DIR/$(basename "$IMAGE")"
+
+    echo "${BGREEN}***** Ready to Roar *****${STD}"
+
+    if [ -d anyker ]; then
+        cd anyker || exit 1
+
+        git reset --hard
+
+        cp "../$IMAGE" zImage
+
+        sed -i 's/ExampleKernel by osm0sis @ xda-developers/HorizonKernel v7.0 for Galaxy S8+/g' anykernel.sh
+        sed -i 's/device.name1=maguro/device.name1=dream2lte/g' anykernel.sh
+        sed -i 's/device.name2=toro/device.name2=dreamlte/g' anykernel.sh
+        sed -i 's/device.name3=toroplus/device.name3=/g' anykernel.sh
+        sed -i 's/device.name4=tuna/device.name4=/g' anykernel.sh
+
+        sed -i 's#platform/omap/omap_hsmmc\.0/by-name/boot#platform/11120000.ufs/by-name/BOOT#g' anykernel.sh
+
+        sed -i 's/^backup_file/#backup_file/g' anykernel.sh
+        sed -i 's/^replace_string/#replace_string/g' anykernel.sh
+        sed -i 's/^insert_line/#insert_line/g' anykernel.sh
+        sed -i 's/^append_file/#append_file/g' anykernel.sh
+        sed -i 's/^patch_fstab/#patch_fstab/g' anykernel.sh
+ZIP_NAME="HorizonKernel-v7.0-dream2lte.zip"
+
+zip -r9 "../${ZIP_NAME}" . -x .git README.md '*placeholder'
+
+cd ..
+
+if [ -f "$ZIP_NAME" ]; then
+    echo "Kernel package created successfully: $ZIP_NAME"
+else
+    echo "ERROR: $ZIP_NAME not found"
+    exit 1
+fi
+fi
+}
+
+build_kernel
