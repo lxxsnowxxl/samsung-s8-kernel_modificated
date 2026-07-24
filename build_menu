@@ -37,25 +37,20 @@ BGREEN=`echo -e "\033[1;32m"`	# Bold Green
 UNDER_LINE=`echo -e "\e[4m"`	# Text Under Line
 STD=`echo -e "\033[0m"`		# Text Clear
  
-build_kernel() {
-    echo "${BGREEN}***** Compiling kernel *****${STD}"
+build_kernel(){  
+  echo "${BGREEN}***** Compiling kernel *****${STD}"
+  [ ! -d "$OUT_DIR" ] && mkdir $OUT_DIR
+  make -j$(nproc) -C $(pwd) $KERNEL_MAKE_ENV exynos8895-dream2lte_defconfig
+  make -j$(nproc) -C $(pwd) $KERNEL_MAKE_ENV
 
-    mkdir -p "$OUT_DIR"
+  [ -e "$(pwd)/arch/arm64/boot/Image.gz" ] && cp "$(pwd)/arch/arm64/boot/Image.gz" $OUT_DIR/Image.gz
+  if [ -e "$(pwd)/arch/arm64/boot/Image" ]; then
+    cp "$(pwd)/arch/arm64/boot/Image" $OUT_DIR/Image
 
-    make -j"$(nproc)" $KERNEL_MAKE_ENV exynos8895-dream2lte_defconfig
-    make -j"$(nproc)" $KERNEL_MAKE_ENV
+    DTB_DIR=$(pwd)/arch/arm64/boot/dts
+    $(pwd)/tools/mkdtimg cfg_create $(pwd)/out/dtb.img dt.configs/exynos8895.cfg -d ${DTB_DIR}/exynos
+  fi
 
-    # Detectar la imagen generada
-    if [ -f arch/arm64/boot/Image.gz-dtb ]; then
-        IMAGE="arch/arm64/boot/Image.gz-dtb"
-    elif [ -f arch/arm64/boot/Image.gz ]; then
-        IMAGE="arch/arm64/boot/Image.gz"
-    elif [ -f arch/arm64/boot/Image ]; then
-        IMAGE="arch/arm64/boot/Image"
-    else
-        echo "${BRED}Kernel image not found!${STD}"
-        exit 1
-    fi
 
     cp "$IMAGE" "$OUT_DIR/$(basename "$IMAGE")"
 
