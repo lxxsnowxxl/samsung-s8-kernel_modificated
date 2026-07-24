@@ -40,6 +40,8 @@ STD=`echo -e "\033[0m"`		# Text Clear
 build_kernel(){  
   echo "${BGREEN}***** Compiling kernel *****${STD}"
   [ ! -d "$OUT_DIR" ] && mkdir $OUT_DIR
+  unset CC
+  unset HOSTCC
   make -j$(nproc) -C $(pwd) $KERNEL_MAKE_ENV exynos8895-dream2lte_defconfig
   make -j$(nproc) -C $(pwd) $KERNEL_MAKE_ENV
 
