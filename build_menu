@@ -8,7 +8,7 @@ DIR="$(pwd)"
 PARENT_DIR="$(pwd)"
 
 echo "Cloning dependencies"
-git clone --depth=1 --branch main https://github.com/lxxsnowxxl/samsung-s8-kernel_modificated kernel
+git clone --depth=1 --branch main https://github.com/lxxsnowxxl/samsung-s8-kernel_modificated.git kernel
 cd kernel 
 git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 aarch64-linux-android-4.9
 git clone --depth=1 https://github.com/crdroidandroid/android_prebuilts_clang_host_linux-x86_clang-5657785.git clang-r353983b
